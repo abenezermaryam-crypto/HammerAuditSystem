@@ -6,10 +6,24 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1E3A8A"
+    },
+    "android": {
+      "package": "com.hamershop.financialaudit",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1E3A8A"
+      }
+    },
     "plugins": [
       [
         "expo-splash-screen",
         {
+          "image": "./assets/splash.png",
           "resizeMode": "contain",
           "backgroundColor": "#1E3A8A"
         }
@@ -18,11 +32,11 @@
     "ios": {
       "supportsTablet": true
     },
-    "android": {
-      "package": "com.hamershop.financialaudit",
-      "adaptiveIcon": {
-        "backgroundColor": "#1E3A8A"
+    "extra": {
+      "eas": {
+        "projectId": "84ce5da9-2bbd-445f-8961-cb7974bcf14b"
       }
-    }
+    },
+    "owner": "yechu_man"
   }
 }
