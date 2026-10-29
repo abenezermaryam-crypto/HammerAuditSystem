@@ -12,6 +12,8 @@ import {
   Platform,
   Image,
   Modal,
+  Keyboard,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { api, getCustomServerUrl, setCustomServerUrl } from '../api/client';
@@ -271,15 +273,19 @@ export const LoginScreen = () => {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: mode === 'register' ? 360 : 160 }
+        ]}
         keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
+        keyboardDismissMode="on-drag"
+        showsVerticalScrollIndicator={true}
       >
         {/* Production Brand Header with New Logo */}
-        <View style={styles.headerContainer}>
+        <View style={[styles.headerContainer, mode === 'register' && { marginBottom: 14 }]}>
           <Image
             source={require('../../assets/logo.png')}
-            style={styles.brandLogo}
+            style={[styles.brandLogo, mode === 'register' && styles.brandLogoSmall]}
             resizeMode="contain"
           />
           <View style={styles.brandBadge}>
@@ -288,8 +294,10 @@ export const LoginScreen = () => {
               <Text style={styles.brandBadgeText}>HAMER SHOP</Text>
             </View>
           </View>
-          <Text style={styles.title}>Financial Control System</Text>
-          <Text style={styles.amharicSubtitle}>የሐመር ሱቅ የገንዘብና የሦስት ቀን ኦዲት መቆጣጠሪያ</Text>
+          <Text style={[styles.title, mode === 'register' && { fontSize: 20 }]}>Financial Control System</Text>
+          {mode !== 'register' && (
+            <Text style={styles.amharicSubtitle}>የሐመር ሱቅ የገንዘብና የሦስት ቀን ኦዲት መቆጣጠሪያ</Text>
+          )}
         </View>
 
         {/* Secure Credentials Form Card */}
@@ -649,6 +657,12 @@ const styles = StyleSheet.create({
     height: 96,
     borderRadius: 20,
     marginBottom: 12,
+  },
+  brandLogoSmall: {
+    width: 56,
+    height: 56,
+    borderRadius: 14,
+    marginBottom: 6,
   },
   serverPill: {
     flexDirection: 'row',

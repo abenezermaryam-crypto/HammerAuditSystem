@@ -21,6 +21,7 @@
       "usesCleartextTraffic": true
     },
     "plugins": [
+      "./plugins/withCleartextTraffic.js",
       [
         "expo-splash-screen",
         {
