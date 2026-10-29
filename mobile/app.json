@@ -10,14 +10,15 @@
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#1E3A8A"
+      "backgroundColor": "#0B2D2F"
     },
     "android": {
       "package": "com.hamershop.financialaudit",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#1E3A8A"
-      }
+        "backgroundColor": "#0B2D2F"
+      },
+      "usesCleartextTraffic": true
     },
     "plugins": [
       [
@@ -25,7 +26,7 @@
         {
           "image": "./assets/splash.png",
           "resizeMode": "contain",
-          "backgroundColor": "#1E3A8A"
+          "backgroundColor": "#0B2D2F"
         }
       ]
     ],

@@ -8,9 +8,13 @@ import {
   ActivityIndicator,
   ScrollView,
   Linking,
+  KeyboardAvoidingView,
+  Platform,
+  Image,
+  Modal,
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
-import { api } from '../api/client';
+import { api, getCustomServerUrl, setCustomServerUrl } from '../api/client';
 import { AppIcon } from '../components/AppIcon';
 
 export const LoginScreen = () => {
@@ -35,6 +39,32 @@ export const LoginScreen = () => {
   const [maskedDestination, setMaskedDestination] = useState('');
   const [devCodeHint, setDevCodeHint] = useState('');
   const { login } = useAuth();
+  const [serverModalVisible, setServerModalVisible] = useState(false);
+  const [currentServerUrl, setCurrentServerUrl] = useState('');
+  const [inputServerUrl, setInputServerUrl] = useState('');
+  const [serverSaveMessage, setServerSaveMessage] = useState('');
+
+  useEffect(() => {
+    getCustomServerUrl().then((url) => {
+      setCurrentServerUrl(url);
+      setInputServerUrl(url);
+    });
+  }, []);
+
+  const handleSaveServer = async () => {
+    if (!inputServerUrl.trim()) return;
+    try {
+      const updated = await setCustomServerUrl(inputServerUrl.trim());
+      setCurrentServerUrl(updated);
+      setServerSaveMessage('Server URL updated successfully!');
+      setTimeout(() => {
+        setServerSaveMessage('');
+        setServerModalVisible(false);
+      }, 1000);
+    } catch {
+      setServerSaveMessage('Failed to save server URL.');
+    }
+  };
 
   useEffect(() => {
     const applyResetLink = (url: string) => {
@@ -236,10 +266,22 @@ export const LoginScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Production Brand Header */}
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Production Brand Header with New Logo */}
         <View style={styles.headerContainer}>
+          <Image
+            source={require('../../assets/logo.png')}
+            style={styles.brandLogo}
+            resizeMode="contain"
+          />
           <View style={styles.brandBadge}>
             <View style={styles.brandRow}>
               <AppIcon name="store" size={16} color="#38BDF8" />
@@ -513,6 +555,17 @@ export const LoginScreen = () => {
             </TouchableOpacity>
           )}
 
+          {/* Server Connection Status & Config Button */}
+          <TouchableOpacity
+            style={styles.serverPill}
+            onPress={() => setServerModalVisible(true)}
+          >
+            <AppIcon name="settings" size={12} color="#64748B" />
+            <Text style={styles.serverPillText} numberOfLines={1}>
+              API Server: {currentServerUrl ? currentServerUrl.replace(/^http:\/\//, '').replace(/\/api\/v1$/, '') : 'Configuring...'} (Tap to change)
+            </Text>
+          </TouchableOpacity>
+
           {/* Security Notice Footer */}
           <View style={styles.securityFooter}>
             <View style={styles.securityRow}>
@@ -524,7 +577,58 @@ export const LoginScreen = () => {
           </View>
         </View>
       </ScrollView>
-    </View>
+
+      {/* Server Configuration Modal */}
+      <Modal visible={serverModalVisible} transparent animationType="fade">
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Backend Server Address</Text>
+            <Text style={styles.modalSubtitle}>
+              Configure the API server URL where the audit system is running (e.g. your PC LAN IP or HTTPS cloud domain).
+            </Text>
+
+            {serverSaveMessage ? (
+              <View style={styles.modalSuccessBox}>
+                <Text style={styles.modalSuccessText}>{serverSaveMessage}</Text>
+              </View>
+            ) : null}
+
+            <Text style={styles.inputLabel}>Server Base URL</Text>
+            <TextInput
+              style={styles.modalInput}
+              value={inputServerUrl}
+              onChangeText={setInputServerUrl}
+              autoCapitalize="none"
+              autoCorrect={false}
+              placeholder="http://172.17.130.100:5000/api/v1"
+              placeholderTextColor="#94A3B8"
+            />
+
+            <View style={styles.modalBtnRow}>
+              <TouchableOpacity
+                style={styles.modalResetBtn}
+                onPress={() => setInputServerUrl('http://172.17.130.100:5000/api/v1')}
+              >
+                <Text style={styles.modalResetText}>Reset Default</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalSaveBtn}
+                onPress={handleSaveServer}
+              >
+                <Text style={styles.modalSaveText}>Save & Connect</Text>
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+              style={styles.modalCloseBtn}
+              onPress={() => setServerModalVisible(false)}
+            >
+              <Text style={styles.modalCloseText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    </KeyboardAvoidingView>
   );
 };
 
@@ -535,9 +639,127 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 36,
+    paddingBottom: 80,
+  },
+  brandLogo: {
+    width: 96,
+    height: 96,
+    borderRadius: 20,
+    marginBottom: 12,
+  },
+  serverPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#F1F5F9',
+    borderColor: '#E2E8F0',
+    borderWidth: 1,
+    borderRadius: 20,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    marginTop: 14,
+  },
+  serverPillText: {
+    fontSize: 11,
+    color: '#64748B',
+    fontWeight: '600',
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 24,
+    padding: 20,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 400,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 22,
+    elevation: 8,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 6,
+  },
+  modalSubtitle: {
+    fontSize: 12,
+    color: '#64748B',
+    lineHeight: 18,
+    marginBottom: 16,
+  },
+  modalSuccessBox: {
+    backgroundColor: '#D1FAE5',
+    padding: 8,
+    borderRadius: 6,
+    marginBottom: 12,
+  },
+  modalSuccessText: {
+    color: '#065F46',
+    fontSize: 12,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  inputLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#334155',
+    marginBottom: 6,
+  },
+  modalInput: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 8,
+    padding: 11,
+    fontSize: 14,
+    color: '#0F172A',
+    marginBottom: 16,
+  },
+  modalBtnRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 10,
+  },
+  modalResetBtn: {
+    flex: 1,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 8,
+    paddingVertical: 11,
+    alignItems: 'center',
+  },
+  modalResetText: {
+    color: '#475569',
+    fontWeight: '700',
+    fontSize: 13,
+  },
+  modalSaveBtn: {
+    flex: 1,
+    backgroundColor: '#1E3A8A',
+    borderRadius: 8,
+    paddingVertical: 11,
+    alignItems: 'center',
+  },
+  modalSaveText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 13,
+  },
+  modalCloseBtn: {
+    paddingVertical: 8,
+    alignItems: 'center',
+  },
+  modalCloseText: {
+    color: '#94A3B8',
+    fontSize: 13,
+    fontWeight: '600',
   },
   headerContainer: {
     alignItems: 'center',

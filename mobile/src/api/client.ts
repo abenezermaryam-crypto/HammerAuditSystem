@@ -2,43 +2,81 @@ import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 
-const configuredApiBaseUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
+const FALLBACK_API_URL = 'http://172.17.130.100:5000/api/v1';
 
-function resolveApiBaseUrl() {
-  const isDevelopment = __DEV__;
-  if (!configuredApiBaseUrl && !isDevelopment) {
-    throw new Error('Set EXPO_PUBLIC_API_URL to the deployed HTTPS API URL before building for production.');
-  }
-
-  // Auto-detect PC IP address when running via Expo Go on physical phone
-  const expoHost =
-    Constants.expoConfig?.hostUri?.split(':')[0] ||
-    Constants.manifest2?.extra?.expoClient?.hostUri?.split(':')[0] ||
-    Constants.manifest?.debuggerHost?.split(':')[0];
-
-  const defaultHost = expoHost || (Platform.OS === 'android' ? '10.0.2.2' : 'localhost');
-  const apiBaseUrl = configuredApiBaseUrl || ('http://' + defaultHost + ':5000/api/v1');
-  let parsedUrl: URL;
+function resolveDefaultApiUrl(): string {
   try {
-    parsedUrl = new URL(apiBaseUrl);
+    const configured = process.env.EXPO_PUBLIC_API_URL?.trim();
+    if (configured) {
+      return configured.replace(/\/+$/, '');
+    }
+
+    const expoHost =
+      Constants.expoConfig?.hostUri?.split(':')[0] ||
+      Constants.manifest2?.extra?.expoClient?.hostUri?.split(':')[0] ||
+      Constants.manifest?.debuggerHost?.split(':')[0];
+
+    if (expoHost && expoHost !== 'localhost' && expoHost !== '127.0.0.1') {
+      return 'http://' + expoHost + ':5000/api/v1';
+    }
+
+    return FALLBACK_API_URL;
   } catch {
-    throw new Error('EXPO_PUBLIC_API_URL must be a complete URL ending in /api/v1.');
+    return FALLBACK_API_URL;
   }
-
-  if (!['http:', 'https:'].includes(parsedUrl.protocol)
-    || parsedUrl.pathname.replace(/\/+$/, '') !== '/api/v1'
-    || parsedUrl.search || parsedUrl.hash || parsedUrl.username || parsedUrl.password) {
-    throw new Error('EXPO_PUBLIC_API_URL must be an HTTP(S) URL ending in /api/v1, without query or fragment.');
-  }
-  const isPrivateIp = /^(localhost|127\.0\.0\.1|10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)/.test(parsedUrl.hostname);
-  if (!isDevelopment && parsedUrl.protocol !== 'https:' && !isPrivateIp) {
-    throw new Error('Production EXPO_PUBLIC_API_URL must use HTTPS for public domains.');
-  }
-
-  return apiBaseUrl.replace(/\/+$/, '');
 }
 
-const API_BASE_URL = resolveApiBaseUrl();
+let cachedServerUrl: string | null = null;
+
+export async function getCustomServerUrl(): Promise<string> {
+  if (cachedServerUrl) return cachedServerUrl;
+  try {
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const stored = window.localStorage.getItem('custom_server_url');
+        if (stored?.trim()) {
+          cachedServerUrl = stored.trim().replace(/\/+$/, '');
+          return cachedServerUrl;
+        }
+      }
+    } else {
+      const stored = await SecureStore.getItemAsync('custom_server_url');
+      if (stored?.trim()) {
+        cachedServerUrl = stored.trim().replace(/\/+$/, '');
+        return cachedServerUrl;
+      }
+    }
+  } catch (err) {
+    console.warn('Could not read custom server URL:', err);
+  }
+
+  cachedServerUrl = resolveDefaultApiUrl();
+  return cachedServerUrl;
+}
+
+export async function setCustomServerUrl(url: string): Promise<string> {
+  let cleaned = url.trim().replace(/\/+$/, '');
+  if (!cleaned.startsWith('http://') && !cleaned.startsWith('https://')) {
+    cleaned = 'http://' + cleaned;
+  }
+  if (!cleaned.endsWith('/api/v1')) {
+    cleaned = cleaned + '/api/v1';
+  }
+
+  cachedServerUrl = cleaned;
+  try {
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.setItem('custom_server_url', cleaned);
+      }
+    } else {
+      await SecureStore.setItemAsync('custom_server_url', cleaned);
+    }
+  } catch (err) {
+    console.warn('Could not persist custom server URL:', err);
+  }
+  return cleaned;
+}
 
 let memoryToken: string | null = null;
 
@@ -85,6 +123,7 @@ export async function apiRequest<T = any>(
   body?: any
 ): Promise<T> {
   const token = await getToken();
+  const baseUrl = await getCustomServerUrl();
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
@@ -97,7 +136,7 @@ export async function apiRequest<T = any>(
   const timeoutId = setTimeout(() => controller.abort(), 20000);
 
   try {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const response = await fetch(`${baseUrl}${endpoint}`, {
       method,
       headers,
       body: body ? JSON.stringify(body) : undefined,

@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Modal,
   ScrollView,
+  Image,
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { AppIcon } from './AppIcon';
@@ -46,7 +47,11 @@ export const VerticalSidebar: React.FC<VerticalSidebarProps> = ({
           <View style={styles.sidebarHeader}>
             <View>
               <View style={styles.brandRow}>
-                <AppIcon name="store" size={18} color="#0284C7" />
+                <Image
+                  source={require('../../assets/logo.png')}
+                  style={{ width: 28, height: 28, borderRadius: 6, marginRight: 6 }}
+                  resizeMode="contain"
+                />
                 <Text style={styles.brandTitle}>HAMER SHOP</Text>
               </View>
               <Text style={styles.brandSubtitle}>Financial Control & Audit</Text>
