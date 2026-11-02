@@ -142,7 +142,7 @@ export const DashboardScreen = ({ navigation }: any) => {
     if (Platform.OS === 'web') {
       const confirmOpen = typeof window !== 'undefined' && window.confirm
         ? window.confirm(keepingOpen
-          ? 'Keep today’s business day open beyond the scheduled 22:00 closing time? This action will be recorded.'
+          ? 'Keep today’s business day open beyond the scheduled 16:00 closing time? This action will be recorded.'
           : `Open financial controls for ${todayStr}? Opening balances will auto-carry forward from the last closed day.`)
         : true;
       if (confirmOpen) {
@@ -152,7 +152,7 @@ export const DashboardScreen = ({ navigation }: any) => {
       Alert.alert(
         keepingOpen ? 'Override Automatic Closing' : 'Open Business Day',
         keepingOpen
-          ? 'Keep today’s business day open beyond the scheduled 22:00 closing time? This action will be recorded.'
+          ? 'Keep today’s business day open beyond the scheduled 16:00 closing time? This action will be recorded.'
           : `Open financial controls for ${todayStr}? Opening balances will auto-carry forward from the last closed day.`,
         [
           { text: 'Cancel', style: 'cancel' },
@@ -209,7 +209,7 @@ export const DashboardScreen = ({ navigation }: any) => {
               <Text style={styles.scheduleText}>
                 {schedule
                   ? `${schedule.openTime || schedule.opensAt}–${schedule.closeTime || schedule.closesAt} · ${schedule.timeZone}`
-                  : 'Daily schedule: 00:00–22:00 · Africa/Addis_Ababa'}
+                  : 'Daily schedule: 00:00–16:00 · Africa/Addis_Ababa'}
               </Text>
             </View>
             {currentBusinessDay && (
@@ -229,7 +229,7 @@ export const DashboardScreen = ({ navigation }: any) => {
             )}
             {metrics?.status === 'OPEN' && role === 'manager' && schedule?.overrideAction !== 'OPEN' && (
               <TouchableOpacity style={styles.openDayBtn} onPress={handleOpenDay}>
-                <Text style={styles.openDayBtnText}>Keep Open Beyond 22:00</Text>
+                <Text style={styles.openDayBtnText}>Keep Open Beyond 16:00</Text>
               </TouchableOpacity>
             )}
             {metrics?.status === 'NO_DAY_OPENED' && role === 'manager' && (

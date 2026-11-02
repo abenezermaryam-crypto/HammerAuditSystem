@@ -6,8 +6,9 @@ React Native + Expo application for Hamer Shop Financial Reconciliation and Peri
 
 ## Setup & Running in VS Code
 
-This app uses Expo SDK 57. Use Node.js `20.19.4+`, `22.13.0+`, `24.3.0+`, or
-`25+`; use the lockfile for reproducible installs.
+This app uses Expo SDK 58. Use Node.js `22.13.0+`, `24.3.0+`, or `26+`;
+Node.js 25 is not supported by this SDK. Use the lockfile for reproducible
+installs.
 
 1. **Install Dependencies:**
    ```bash
@@ -17,7 +18,7 @@ This app uses Expo SDK 57. Use Node.js `20.19.4+`, `22.13.0+`, `24.3.0+`, or
 
 2. **Configure API Base URL:**
    - For local development, the defaults are `http://localhost:5000/api/v1` on web/iOS and `http://10.0.2.2:5000/api/v1` on the Android emulator.
-   - For a physical phone on the local network, create a local `.env` from `.env.example` and set `EXPO_PUBLIC_API_URL` to your computer's LAN API address, such as `http://192.168.1.50:5000/api/v1`.
+   - For a physical phone on the local network, make sure it and the computer running the backend are on the same Wi-Fi. The app detects the Expo development host automatically. If the connection still fails, tap **API Server** on the login page and enter the computer's current LAN address, such as `http://192.168.1.50:5000/api/v1`.
    - For production, set `EXPO_PUBLIC_API_URL` to the deployed HTTPS API URL (for example `https://api.your-domain.com/api/v1`) in the build environment before exporting the app. The production build intentionally fails if this is missing or not HTTPS. This value is public configuration; never put secrets in `EXPO_PUBLIC_*` variables.
 
 3. **Start Expo Development Server:**
