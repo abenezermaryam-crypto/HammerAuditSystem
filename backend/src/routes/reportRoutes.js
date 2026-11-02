@@ -8,5 +8,7 @@ router.get('/expenses', authenticate, authorize(['manager', 'auditor']), reportC
 router.get('/closings', authenticate, authorize(['manager', 'auditor']), reportController.getDailyClosingReport);
 router.get('/three-day-audits', authenticate, authorize(['manager', 'auditor']), reportController.getThreeDayAuditReport);
 router.get('/audit-trail', authenticate, authorize(['manager']), reportController.getAuditTrailReport);
+router.get('/export/csv', authenticate, authorize(['manager', 'auditor']), reportController.exportCSVReport);
+router.get('/export/printable', authenticate, authorize(['manager', 'auditor']), reportController.exportPrintableReport);
 
 module.exports = router;

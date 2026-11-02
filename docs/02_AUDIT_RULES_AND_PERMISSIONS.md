@@ -26,7 +26,7 @@ can create approved accounts and assign Recorder, Auditor, or Manager roles.
 Accounts are deactivated rather than deleted so financial and audit history
 retains valid user references.
 
-Business days automatically open at 00:00 and close at 22:00 in the
+Business days automatically open at 00:00 (12:00 AM) and close at 16:00 (4:00 PM) in the
 `Africa/Addis_Ababa` time zone. Managers may override the schedule. Automated
 closing uses ledger-estimated balances, clearly marked for Manager physical
 verification. Reopening a closed day requires a Manager reason, preserves the

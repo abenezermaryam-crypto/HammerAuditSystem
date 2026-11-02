@@ -82,7 +82,7 @@ Express.js + MySQL 8.0+ server-authoritative financial calculation and audit eng
    are used when starting the API.
 
 Business-day automation uses `Africa/Addis_Ababa`: daily opening at 00:00 and
-closing at 22:00. The scheduler synchronizes at startup, every 15 seconds, and
+closing at 16:00 (4:00 PM). The scheduler synchronizes at startup, every 15 seconds, and
 before financial API requests, so missed ticks are reconciled after a restart.
 Automatic closing records ledger estimates rather than physical counts.
 Managers can reopen a closed, unaudited day only with a reason; the previous

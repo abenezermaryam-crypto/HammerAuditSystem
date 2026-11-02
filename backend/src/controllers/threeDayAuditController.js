@@ -72,6 +72,12 @@ async function submitThreeDayAudit(req, res) {
     const addCash = toFixed2(additional_cash_income || 0);
 
     const result = await transaction(async (conn) => {
+      // Lock business day rows for pessimistic concurrency control
+      await conn.execute(
+        `SELECT id, status FROM business_days WHERE id IN (?, ?, ?) FOR UPDATE`,
+        day_ids
+      );
+
       // 1. Calculate three-day closing balances (Section 3 carry-forward logic)
       const calc = await calculateThreeDayAudit(day_ids, addCash);
 

@@ -99,13 +99,13 @@ async function getDashboardSummary(req, res) {
         openDiscrepancies,
         threeDayAuditStatus,
         latestAuditCode,
-        alerts
-        ,schedule: {
+        alerts,
+        schedule: {
           timeZone: TIME_ZONE,
           opensAt: '00:00',
-          closesAt: '22:00',
+          closesAt: '16:00',
           remainingMinutes: todayMetrics.status === 'OPEN'
-            ? Math.max(0, 22 * 60 - getLocalParts().minuteOfDay)
+            ? Math.max(0, 16 * 60 - getLocalParts().minuteOfDay)
             : 0
         }
       }

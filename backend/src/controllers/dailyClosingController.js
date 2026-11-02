@@ -27,26 +27,6 @@ async function performDailyClosing(req, res) {
     const { business_day_id } = req.params;
     const { actual_cash, actual_bank, notes } = req.body;
 
-    if (actual_cash === undefined || actual_bank === undefined) {
-      return res.status(400).json({
-        success: false,
-        error: 'Both actual physical cash count (actual_cash) and verified bank balance (actual_bank) are required.'
-      });
-    }
-
-    const rawCash = Number(actual_cash);
-    const rawBank = Number(actual_bank);
-    if (!Number.isFinite(rawCash) || !Number.isFinite(rawBank)
-      || rawCash > 999999999999.99 || rawBank > 999999999999.99) {
-      return res.status(400).json({ success: false, error: 'Actual balances must be valid monetary amounts.' });
-    }
-    const actCash = toFixed2(rawCash);
-    const actBank = toFixed2(rawBank);
-
-    if (actCash < 0 || actBank < 0) {
-      return res.status(400).json({ success: false, error: 'Actual cash and bank balances cannot be negative.' });
-    }
-
     // Run within atomic transaction
     const result = await transaction(async (conn) => {
       // 1. Lock day record for update
@@ -66,9 +46,14 @@ async function performDailyClosing(req, res) {
 
       // 2. Perform Server-Authoritative Calculations
       const calc = await calculateDayReconciliation(business_day_id);
+
+      // In daily closing, actual counts are defaulted to calculated totals (Cross-check verification occurs on 3-Day Audit)
+      const actCash = (actual_cash !== undefined && actual_cash !== null && actual_cash !== '') ? toFixed2(actual_cash) : calc.expectedCash;
+      const actBank = (actual_bank !== undefined && actual_bank !== null && actual_bank !== '') ? toFixed2(actual_bank) : calc.expectedBank;
+
       const recon = evaluateReconciliation(calc.expectedCash, actCash, calc.expectedBank, actBank);
 
-      // 3. Insert into daily_closings table
+      // 3. Insert/Update daily_closings table
       const closingValues = [
           business_day_id,
           calc.openingCash,
@@ -128,50 +113,7 @@ async function performDailyClosing(req, res) {
         closingId = closingResult.insertId;
       }
 
-      // 4. If discrepancies exist, automatically create discrepancy records
-      if (recon.cashStatus !== 'BALANCED') {
-        const discCode = `DISC-CASH-${day.business_date_key.replace(/-/g, '')}-${closingId}-${Date.now()}`;
-        const discType = recon.cashDifference < 0 ? 'SHORTAGE' : 'SURPLUS';
-        await conn.execute(
-          `INSERT INTO discrepancies 
-            (discrepancy_code, source_type, source_id, business_date, account_type, expected_amount, actual_amount, difference_amount, discrepancy_type, status, responsible_user_id, explanation)
-           VALUES (?, 'DAILY_CLOSING', ?, ?, 'CASH', ?, ?, ?, ?, 'OPEN', ?, ?)`,
-          [
-            discCode,
-            closingId,
-            day.business_date,
-            recon.expectedCash,
-            recon.actualCash,
-            recon.cashDifference,
-            discType,
-            req.user.id,
-            `Daily Closing Cash ${discType} detected on ${day.business_date}. Expected: ${recon.expectedCash} ETB, Actual: ${recon.actualCash} ETB.`
-          ]
-        );
-      }
-
-      if (recon.bankStatus !== 'BALANCED') {
-        const discCode = `DISC-BANK-${day.business_date_key.replace(/-/g, '')}-${closingId}-${Date.now()}`;
-        const bankDiscType = recon.bankDifference < 0 ? 'SHORTAGE' : 'SURPLUS';
-        await conn.execute(
-          `INSERT INTO discrepancies 
-            (discrepancy_code, source_type, source_id, business_date, account_type, expected_amount, actual_amount, difference_amount, discrepancy_type, status, responsible_user_id, explanation)
-           VALUES (?, 'DAILY_CLOSING', ?, ?, 'BANK', ?, ?, ?, ?, 'OPEN', ?, ?)`,
-          [
-            discCode,
-            closingId,
-            day.business_date,
-            recon.expectedBank,
-            recon.actualBank,
-            recon.bankDifference,
-            bankDiscType,
-            req.user.id,
-            `Daily Closing Bank ${bankDiscType} detected on ${day.business_date}. Expected: ${recon.expectedBank} ETB, Actual: ${recon.actualBank} ETB.`
-          ]
-        );
-      }
-
-      // 5. Freeze and update business day status to CLOSED
+      // 4. Freeze and update business day status to CLOSED
       await conn.execute(
         `UPDATE business_days 
          SET status = 'CLOSED', closed_by = ?, closed_at = NOW() 

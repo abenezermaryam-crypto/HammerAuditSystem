@@ -4,7 +4,7 @@ const { toFixed2, evaluateReconciliation } = require('./calculationService');
 
 const TIME_ZONE = 'Africa/Addis_Ababa';
 const OPEN_MINUTE = 0;
-const CLOSE_MINUTE = 22 * 60;
+const CLOSE_MINUTE = 16 * 60; // 16:00 (4:00 PM)
 const pollIntervalMs = 15_000;
 
 function getLocalParts(date = new Date()) {
@@ -96,7 +96,7 @@ async function automaticallyCloseBusinessDay(businessDayId, managerId, closedAt)
       calculation.expectedBank
     );
     const notes =
-      'Automatic 22:00 Africa/Addis_Ababa close. Actual balances are ledger estimates, not a physical count; Manager verification is required.';
+      'Automatic 16:00 Africa/Addis_Ababa close. Actual balances are ledger estimates, not a physical count; Manager verification is required.';
 
     const [existingClosings] = await connection.execute(
       'SELECT id FROM daily_closings WHERE business_day_id = ? FOR UPDATE',
@@ -188,7 +188,7 @@ async function openScheduledBusinessDay(businessDate, managerId) {
       await automaticallyCloseBusinessDay(
         activeDays[0].id,
         managerId,
-        `${activeDays[0].business_date} 22:00:00`
+        `${activeDays[0].business_date} 16:00:00`
       );
     }
   } while (activeDays.length);
@@ -247,7 +247,7 @@ async function synchronizeBusinessDaySchedule(now = new Date()) {
     await automaticallyCloseBusinessDay(
       openDays[0].id,
       managerId,
-      `${String(openDays[0].business_date).slice(0, 10)} 22:00:00`
+      `${String(openDays[0].business_date).slice(0, 10)} 16:00:00`
     );
   }
 
@@ -264,7 +264,7 @@ async function synchronizeBusinessDaySchedule(now = new Date()) {
     [local.dateKey]
   );
   if (currentOpen.length && local.minuteOfDay >= CLOSE_MINUTE && override !== 'OPEN') {
-    await automaticallyCloseBusinessDay(currentOpen[0].id, managerId, `${local.dateKey} 22:00:00`);
+    await automaticallyCloseBusinessDay(currentOpen[0].id, managerId, `${local.dateKey} 16:00:00`);
   }
 
   const [currentDay] = await pool.execute(

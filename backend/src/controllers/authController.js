@@ -148,100 +148,55 @@ async function requestPasswordReset(req, res) {
   let deliveryMethod = 'EMAIL';
 
   try {
-    // 1. Primary path: Check both username and email (Requirement: "please check the emaile and user name. the verification code must be sent by email")
-    if (rawUsername && (rawEmail || rawIdentifier.includes('@'))) {
-      const emailInput = (rawEmail || rawIdentifier).toLowerCase();
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput) || emailInput.length > 100) {
-        return res.status(400).json({
-          success: false,
-          error: 'Please enter a valid registered email address (up to 100 characters).'
-        });
-      }
-
-      // Check whether user exists by username
-      const rows = await query('SELECT * FROM users WHERE LOWER(username) = ? LIMIT 1', [rawUsername.toLowerCase()]);
+    // Lookup user by Username, Email, or Both
+    let rows = [];
+    if (rawUsername && rawEmail) {
+      rows = await query(
+        'SELECT * FROM users WHERE LOWER(username) = ? AND LOWER(email) = ? LIMIT 1',
+        [rawUsername.toLowerCase(), rawEmail.toLowerCase()]
+      );
       if (rows.length === 0) {
-        return genericResponse();
+        // Fallback: check if either username or email matches
+        rows = await query(
+          'SELECT * FROM users WHERE LOWER(username) = ? OR LOWER(email) = ? LIMIT 1',
+          [rawUsername.toLowerCase(), rawEmail.toLowerCase()]
+        );
       }
-
-      const candidate = rows[0];
-      // Verify email matches the user's registered email
-      if (!candidate.email || candidate.email.toLowerCase() !== emailInput) {
-        return genericResponse();
-      }
-
-      matchedUser = candidate;
-      deliveryMethod = 'EMAIL';
-    } else if (rawUsername && !rawEmail && !rawPhone && !rawIdentifier) {
-      // Username provided alone without email
-      return res.status(400).json({
-        success: false,
-        error: 'Please enter both your username and registered email address.'
-      });
-    } else if (!rawUsername && (rawEmail || rawIdentifier.includes('@'))) {
-      // Email provided alone without username
-      const emailInput = (rawEmail || rawIdentifier).toLowerCase();
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput) || emailInput.length > 100) {
-        return res.status(400).json({
-          success: false,
-          error: 'Please enter a valid registered email address.'
-        });
-      }
-
-      const rows = await query('SELECT * FROM users WHERE LOWER(email) = ? LIMIT 1', [emailInput]);
-      if (rows.length === 0) {
-        return genericResponse();
-      }
-      matchedUser = rows[0];
-      deliveryMethod = 'EMAIL';
-    } else if (rawPhone || (!rawIdentifier.includes('@') && normalizeDigits(rawIdentifier).length >= 7)) {
-      // Phone fallback
-      const phoneInput = rawPhone || rawIdentifier;
-      const inputDigits = normalizeDigits(phoneInput);
-      if (inputDigits.length < 7 || inputDigits.length > 15) {
-        return res.status(400).json({
-          success: false,
-          error: 'Enter a valid registered phone number with 7 to 15 digits.'
-        });
-      }
-
-      if (rawUsername) {
-        const rows = await query('SELECT * FROM users WHERE LOWER(username) = ? LIMIT 1', [rawUsername.toLowerCase()]);
-        if (rows.length === 0) {
-          return genericResponse();
-        }
-        const candidate = rows[0];
-        const candDigits = normalizeDigits(candidate.phone_number || '');
-        if (candDigits !== inputDigits && !candDigits.endsWith(inputDigits.slice(-9))) {
-          return genericResponse();
-        }
-        matchedUser = candidate;
-      } else {
-        const rows = await query('SELECT * FROM users WHERE phone_number = ? LIMIT 1', [phoneInput]);
-        if (rows.length > 0) {
-          matchedUser = rows[0];
-        } else {
-          const allUsers = await query('SELECT * FROM users WHERE phone_number IS NOT NULL');
-          for (const u of allUsers) {
-            const uDigits = normalizeDigits(u.phone_number);
-            if (uDigits === inputDigits || (inputDigits.length >= 9 && uDigits.endsWith(inputDigits.slice(-9)))) {
-              matchedUser = u;
-              break;
-            }
+    } else if (rawUsername) {
+      rows = await query(
+        'SELECT * FROM users WHERE LOWER(username) = ? OR LOWER(email) = ? LIMIT 1',
+        [rawUsername.toLowerCase(), rawUsername.toLowerCase()]
+      );
+    } else if (rawEmail || rawIdentifier) {
+      const term = (rawEmail || rawIdentifier).toLowerCase();
+      rows = await query(
+        'SELECT * FROM users WHERE LOWER(email) = ? OR LOWER(username) = ? LIMIT 1',
+        [term, term]
+      );
+    } else if (rawPhone) {
+      const inputDigits = normalizeDigits(rawPhone);
+      rows = await query('SELECT * FROM users WHERE phone_number = ? LIMIT 1', [rawPhone]);
+      if (rows.length === 0 && inputDigits) {
+        const allUsers = await query('SELECT * FROM users WHERE phone_number IS NOT NULL');
+        for (const u of allUsers) {
+          const uDigits = normalizeDigits(u.phone_number);
+          if (uDigits === inputDigits || (inputDigits.length >= 7 && uDigits.endsWith(inputDigits.slice(-7)))) {
+            rows = [u];
+            break;
           }
         }
       }
       deliveryMethod = 'SMS';
-    } else {
-      return res.status(400).json({
+    }
+
+    if (rows.length === 0) {
+      return res.status(404).json({
         success: false,
-        error: 'Please enter your username and registered email address.'
+        error: 'No active approved account found matching the provided details.'
       });
     }
 
-    if (!matchedUser) {
-      return genericResponse();
-    }
+    matchedUser = rows[0];
 
     // Preserve approval workflow and deactivated account status
     if (!matchedUser.is_active) {

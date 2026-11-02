@@ -130,9 +130,9 @@ The system includes interactive chart dashboards accessible by Managers and Audi
   most recent business-day periods. The 3-Day view reflects submitted formal
   three-day audits, so it remains empty until an audit has been submitted.
 
-Business days are scheduled to open at 00:00 and close at 22:00 in
+Business days are scheduled to open at 00:00 (12:00 AM) and close at 16:00 (4:00 PM) in
 `Africa/Addis_Ababa`. The Manager may override the daily schedule; automated
-closing records estimated ledger balances and requires physical verification.
+closing records estimated ledger balances and requires physical verification during the 3-Day Audit.
 Password recovery requires SMTP settings in `backend/.env`; reset tokens are
 hashed, expire after 30 minutes, and are single use.
 

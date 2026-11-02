@@ -32,10 +32,12 @@ const { query } = require('../config/database');
  */
 
 // ---------------------------------------------------------------------------
-// Helper: Ensure 2-decimal fixed-point arithmetic
+// Helper: Ensure 2-decimal fixed-point arithmetic with epsilon protection
 // ---------------------------------------------------------------------------
 function toFixed2(val) {
-  return Math.round((Number(val) || 0) * 100) / 100;
+  const num = typeof val === 'number' ? val : parseFloat(val) || 0;
+  if (!Number.isFinite(num)) return 0;
+  return Math.round((num + Number.EPSILON) * 100) / 100;
 }
 
 // ---------------------------------------------------------------------------

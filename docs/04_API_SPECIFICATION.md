@@ -35,7 +35,7 @@
   - Returns current open business day or status.
 * `POST /business-days/open` (Manager)
   - Body: `{ "business_date": "YYYY-MM-DD", "opening_cash": 10000, "opening_bank": 30000, "reason": "..." }`. Reopening a closed day requires a reason.
-* Schedule: Opens at 00:00 and closes at 22:00 `Africa/Addis_Ababa`; Manager overrides are stored by business date.
+* Schedule: Opens at 00:00 (12:00 AM) and closes at 16:00 (4:00 PM) `Africa/Addis_Ababa`; Manager overrides are stored by business date.
 * `GET /business-days/:id/reconciliation-preview`
   - Returns calculated `expected_cash`, `expected_bank`, aggregated incomes, and aggregated expenses.
 * `POST /business-days/:id/close` (Recorder / Manager)

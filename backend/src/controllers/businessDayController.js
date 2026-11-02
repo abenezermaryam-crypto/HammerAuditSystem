@@ -32,7 +32,7 @@ async function getCurrentDay(req, res) {
         schedule: {
           timeZone: TIME_ZONE,
           openTime: '00:00',
-          closeTime: '22:00',
+          closeTime: '16:00',
           remainingMinutes: 0,
           overrideAction
         }
@@ -45,10 +45,10 @@ async function getCurrentDay(req, res) {
       schedule: {
         timeZone: TIME_ZONE,
         openTime: '00:00',
-        closeTime: '22:00',
+        closeTime: '16:00',
         overrideAction,
         remainingMinutes: days[0].status === 'OPEN'
-          ? Math.max(0, 22 * 60 - getLocalParts().minuteOfDay)
+          ? Math.max(0, 16 * 60 - getLocalParts().minuteOfDay)
           : 0
       }
     });
